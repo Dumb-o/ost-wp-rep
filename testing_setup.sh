@@ -56,7 +56,7 @@ EOF
 echo "Downloading Wordpress"
 
 mkdir -p wordpress
-curl -sSL https://wordpress.org/latest.tar.gz | tar -xvf - -C wordpress --strip-components=1
+curl -sSL https://wordpress.org/latest.tar.gz | tar -xvzf - -C wordpress --strip-components=1
 
 echo "Downloading OSTicket"
 
