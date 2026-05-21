@@ -1,0 +1,71 @@
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: unless-stopped
+    networks:
+      - web-network
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ROOT_PW}
+    volumes:
+      - ./mariadb:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+
+  php-fpm:
+    image: dumb0i/php-fpm:latest
+    container_name: php-fpm
+    restart: unless-stopped
+    networks:
+      - web-network
+    depends_on:
+      - mariadb
+    environment:
+      - PHP_INI_SCAN_DIR=/usr/local/etc/php/conf.d
+      - PHP_OPTIONS=-d error_reporting="E_ALL & ~E_DEPRECATED & ~E_STRICT"
+    volumes:
+      - ./wordpress:/var/www/html/wordpress
+      - ./OSTicket:/var/www/html/osticket
+
+  httpd-wordpress:
+    image: dumb0i/httpd-wordpress:latest
+    container_name: httpd-wordpress
+    restart: unless-stopped
+    networks:
+      - web-network
+    depends_on:
+      - php-fpm
+    volumes:
+      - ./wordpress:/var/www/html/wordpress
+      - ./wordpress-vhost.conf:/usr/local/apache2/conf/extra/httpd-vhosts.conf:ro
+      - ./httpd.conf:/usr/local/apache2/conf/httpd.conf:ro
+
+  httpd-osticket:
+    image: dumb0i/httpd-osticket:latest
+    container_name: httpd-osticket
+    restart: unless-stopped
+    networks:
+      - web-network
+    depends_on:
+      - php-fpm
+    volumes:
+      - ./OSTicket:/var/www/html/osticket
+      - ./osticket-vhost.conf:/usr/local/apache2/conf/extra/httpd-vhosts.conf:ro
+      - ./httpd.conf:/usr/local/apache2/conf/httpd.conf:ro
+
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    networks:
+      - web-network
+    depends_on:
+      - httpd-wordpress
+      - httpd-osticket
+    ports:
+      - "80:80"
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf:ro
+
+networks:
+  web-network:
+    driver: bridge
